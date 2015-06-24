@@ -72,7 +72,7 @@ normalfdo:
 # 	$(CC) $(FLAGS) $(LIBS) -O3 -fauto-profile=demo.afdo $(SOURCES) -o demo_autofdo
 
 autofdo: $(BINARIES)
-	$(foreach BINARY,$(BINARIES),~/pmu-tools/ocperf.py record -b -e br_inst_retired.near_taken -- ./$(BINARY);/tmp/autofdo/create_gcov --binary=./$(BINARY) --profile=perf.data --gcov=$(BINARY).afdo -gcov_version=1;$(CC) $(FLAGS) $(LIBS) -O3 -fauto-profile=$(BINARY).afdo src/$(BINARY).c $(CSOURCES) -o $(BINARY)_autofdo;)
+	$(foreach BINARY,$(BINARIES),~/pmu-tools/ocperf.py record -b -e br_inst_retired.near_taken -- ./$(BINARY);/tmp/autofdo/create_gcov --binary=./$(BINARY) --profile=perf.data --gcov=$(BINARY).afdo -gcov_version=1;)#$(CC) $(FLAGS) $(LIBS) -O3 -fauto-profile=$(BINARY).afdo src/$(BINARY).c $(CSOURCES) -o $(BINARY)_autofdo;)
 
 bubble_sort: src/bubble_sort.o $(COBJECTS) $(HEADERS) $(COMMON)
 	$(CC) $(FLAGS) $(CFLAGS) $(LIBS) $(DEBUGFLAGS) -o $@ $< $(COBJECTS)
