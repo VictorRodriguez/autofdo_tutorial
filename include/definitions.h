@@ -1,0 +1,9 @@
+#ifndef DEFINITIONS_H_
+#define DEFINITIONS_H_
+
+#define ARRAY_LEN 30000
+#define PI_LEN_MIN 10000
+#define PI_LEN_MAX 100000
+#define MATRIX_SIZE 800
+
+#endif // DEFINITIONS_H_
