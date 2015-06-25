@@ -28,16 +28,16 @@ all: $(BINARIES)
 # 	$(CC) $(FLAGS) $(CFLAGS) $(LIBS) $(RELEASEFLAGS) -o $(TARGET) $(SOURCES)
 
 release: $(SOURCES) $(HEADERS) $(COMMON) $(CSOURCES)
-	$(foreach BINARY,$(BINARIES),$(CC) $(FLAGS) $(CFLAGS) $(LIBS) $(RELEASEFLAGS) -o $(BINARY)_optimized src/$(BINARY).c $(CSOURCES);)
+	$(foreach BINARY,$(BINARIES),$(CC) $(FLAGS) $(CFLAGS) $(LIBS) $(RELEASEFLAGS) -o $(BINARY) src/$(BINARY).c $(CSOURCES);)
 
-install: release
-	install -D $(TARGET) $(BINDIR)/$(TARGET)
+# install: release
+# 	install -D $(TARGET) $(BINDIR)/$(TARGET)
 
-install-strip: release
-	install -D -s $(TARGET) $(BINDIR)/$(TARGET)
+# install-strip: release
+# 	install -D -s $(TARGET) $(BINDIR)/$(TARGET)
 
-uninstall:
-	-rm $(BINDIR)/$(TARGET)
+# uninstall:
+# 	-rm $(BINDIR)/$(TARGET)
 
 clean:
 	-rm -f $(OBJECTS)
@@ -58,13 +58,10 @@ remove:
 	rm -rf *.afdo*
 	rm -rf *.gcda
 
-optimized:
-	$(CC) $(FLAGS) $(LIBS) -O3 $(SOURCES) -o demo_optimized
-
-normalfdo:
-	$(CC) -g3 $(FLAGS) $(LIBS) $(SOURCES) -o demo_instrumented -fprofile-generate
-	./demo_instrumented
-	$(CC) $(FLAGS) $(LIBS) -O3 $(SOURCES) -o demo_normalfdo -fprofile-use
+# normalfdo:
+# 	$(CC) -g3 $(FLAGS) $(LIBS) $(SOURCES) -o demo_instrumented -fprofile-generate
+# 	./demo_instrumented
+# 	$(CC) $(FLAGS) $(LIBS) -O3 $(SOURCES) -o demo_normalfdo -fprofile-use
 
 # autofdo: $(BINARIES)
 # 	~/pmu-tools/ocperf.py record -b -e br_inst_retired.near_taken -- ./demo
@@ -88,4 +85,4 @@ pi_calculation: src/pi_calculation.o $(COBJECTS) $(HEADERS) $(COMMON)
 
 
 
-.PHONY : all release install install-strip uninstall clean distclean autofdo normalfdo
+.PHONY : all release clean distclean autofdo 
