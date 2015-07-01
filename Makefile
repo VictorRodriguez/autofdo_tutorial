@@ -41,7 +41,9 @@ release: $(SOURCES) $(HEADERS) $(COMMON) $(CSOURCES)
 
 clean:
 	-rm -f $(OBJECTS)
-	-rm -f perf.data*
+
+cleanfdo:
+	-rm -f *.data*
 	-rm -f *.afdo*
 	-rm -f *.gcda
 

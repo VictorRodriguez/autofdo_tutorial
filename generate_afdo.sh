@@ -71,12 +71,12 @@ if [ ! -z "$BINARIES" ]; then
 	cd $CWD
 	while IFS=',' read -ra ADDR; do
     	for i in "${ADDR[@]}"; do
-    		$OCPERF record -b -e br_inst_retired.near_taken -- $CWD/$i
-    		$CREATE_GCOV --binary=$CWD/$i --profile=perf.data --gcov=$CWD/$i.afdo -gcov_version=1
+    		$OCPERF record -b -g -e br_inst_retired.near_taken -o $CWD/$i.data -- $CWD/$i
+    		#$CREATE_GCOV --binary=$CWD/$i --profile=perf.data --gcov=$CWD/$i.afdo -gcov_version=1
     	done
 	done <<< "$BINARIES"
 	echo "Merging profiles"
-	$PROFILE_MERGER $(echo *.afdo) -gcov_version=1
+	#$PROFILE_MERGER $(echo *.afdo) -gcov_version=1
 
 else
 	echo "No binaries provided, use -b=binary option"
