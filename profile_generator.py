@@ -3,7 +3,9 @@
 import argparse
 import os
 import sys
+import shutil
 import subprocess
+import time
 import logging
 import pdb
 
@@ -14,7 +16,8 @@ VERSION="0.1"
 DEFAULT_LOGGING_LEVEL=logging.INFO
 
 def get_autofdo_path():
-    p = subprocess.Popen("./install_autofdo.sh", stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    logger.info("Verifying AutoFDO path")
+    p = subprocess.Popen(os.path.join(os.path.dirname(os.path.realpath(__file__)), "install_autofdo.sh"), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     out, err = p.communicate()
     if p.returncode:
         logger.debug(out)
@@ -24,6 +27,7 @@ def get_autofdo_path():
     return out.split()[-1]
 
 def parse_binaries(perf_file):
+    logger.info("Parsing perf file")
     binaries = []
     exist = False
     if not os.path.exists(perf_file) or not os.path.isfile(perf_file):
@@ -35,6 +39,7 @@ def parse_binaries(perf_file):
     return binaries
 
 def generate_gcov(autofdo_path, perf_file, binaries):
+    logger.info("Generating gcovs")
     gcovs = []
     for binary in binaries:
         if not binary.startswith("["):
@@ -42,9 +47,18 @@ def generate_gcov(autofdo_path, perf_file, binaries):
             p = subprocess.Popen([os.path.join(autofdo_path, "create_gcov"), "--binary="+binary, "--profile="+perf_file, "--gcov="+gcov_file, "-gcov_version=1"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             if not p.returncode:
                 gcovs.append(gcov_file)
-    return merge_gcovs(autofdo_path, gcovs) if len(gcovs) > 1 else gcovs[0]
+    main_gcov = merge_gcovs(autofdo_path, gcovs) if len(gcovs) > 1 else gcovs[0]
+    while not os.path.exists(main_gcov):
+        time.sleep(1)
+    new_gcov = perf_file.split(".data")[0]+".afdo"
+    shutil.copy2(main_gcov, new_gcov)
+    return new_gcov
 
 def merge_gcovs(autofdo_path, gcovs):
+    logger.info("Waiting gcov creation")
+    while not all([os.path.exists(f) for f in gcovs]):
+        time.sleep(1)
+    logger.info("Merging gcovs")
     p = subprocess.Popen([os.path.join(autofdo_path, "profile_merger")] + gcovs + ["-gcov_version=1"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     return "fbdata.afdo" if not p.returncode else ""
 
@@ -66,6 +80,16 @@ if __name__ == "__main__":
                         version='%(prog)s Version: {version}'.format(version=VERSION),
                         help='Show version and exit')
     args = parser.parse_args()
+    ch = logging.StreamHandler()    
+    if args.verbosity_level == logging.getLevelName(logging.DEBUG):
+        ch.setLevel(logging.DEBUG)
+    elif args.verbosity_level == logging.getLevelName(logging.INFO):
+        ch.setLevel(logging.INFO)
+    elif args.verbosity_level == logging.getLevelName(logging.ERROR):
+        ch.setLevel(logging.ERROR)
+    else:
+        logger.error("Unrecognized logging level")
+    logger.addHandler(ch)
     autofdo_path = get_autofdo_path()
     binaries = parse_binaries(args.perf_file[0])
     gcov = generate_gcov(autofdo_path, args.perf_file[0], binaries)
