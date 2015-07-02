@@ -1,3 +1,5 @@
+#!/usr/bin/python
+
 import argparse
 import os
 import sys
@@ -27,13 +29,24 @@ def parse_binaries(perf_file):
     if not os.path.exists(perf_file) or not os.path.isfile(perf_file):
         logger.error("Perf data file wasn't found")
         sys.exit(1)
-    p = subprocess.Popen(["perf", "report", "-i", perf_file, "--sort=dso"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    binaries = [y.split()[1] for y in [x.strip() for x in out.split("\n") if x and not x.startswith("#")]]
+    p = subprocess.Popen(["perf", "report", "-i", perf_file, "-D"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    out, err = p.communicate()
+    binaries = list(set([y.split()[2] for y in [x.strip() for x in out.split("\n") if x and x.startswith(" ...... dso: ")]]))
     return binaries
 
-def generate_gcov(autofdo_path, binaries):
-    gcov = ""
-    return gcov
+def generate_gcov(autofdo_path, perf_file, binaries):
+    gcovs = []
+    for binary in binaries:
+        if not binary.startswith("["):
+            gcov_file = binary.split("/")[-1]+".afdo"
+            p = subprocess.Popen([os.path.join(autofdo_path, "create_gcov"), "--binary="+binary, "--profile="+perf_file, "--gcov="+gcov_file, "-gcov_version=1"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            if not p.returncode:
+                gcovs.append(gcov_file)
+    return merge_gcovs(autofdo_path, gcovs) if len(gcovs) > 1 else gcovs[0]
+
+def merge_gcovs(autofdo_path, gcovs):
+    p = subprocess.Popen([os.path.join(autofdo_path, "profile_merger")] + gcovs + ["-gcov_version=1"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    return "fbdata.afdo" if not p.returncode else ""
 
 def upload_gcov(gcov):
     pass
@@ -55,5 +68,5 @@ if __name__ == "__main__":
     args = parser.parse_args()
     autofdo_path = get_autofdo_path()
     binaries = parse_binaries(args.perf_file[0])
-    gcov = generate_gcov(autofdo_path, binaries)
+    gcov = generate_gcov(autofdo_path, args.perf_file[0], binaries)
     upload_gcov(gcov)
