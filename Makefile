@@ -18,6 +18,9 @@ BINARIES= bubble_sort matrix_multiplication pi_calculation
 PREFIX = $(DESTDIR)/usr/local
 BINDIR = $(PREFIX)/bin
 
+INSTALLATION_PATH = /tmp
+PMU_TOOLS_PATH = $(INSTALLATION_PATH)/pmu-tools
+AUTOFDO_PATH = $(INSTALLATION_PATH)/autofdo
 
 all: $(BINARIES)
 
@@ -47,7 +50,7 @@ cleanfdo:
 	-rm -f *.afdo*
 	-rm -f *.gcda
 
-distclean: clean
+distclean: clean cleanfdo
 	-rm -f $(BINARIES)
 	$(foreach BINARY,$(BINARIES), rm -f $(BINARY)_autofdo; rm -f $(BINARY)_optimized;)
 
@@ -70,8 +73,14 @@ remove:
 # 	/tmp/autofdo/create_gcov --binary=./demo --profile=perf.data --gcov=demo.afdo -gcov_version=1
 # 	$(CC) $(FLAGS) $(LIBS) -O3 -fauto-profile=demo.afdo $(SOURCES) -o demo_autofdo
 
-autofdo: $(BINARIES)
-	$(foreach BINARY,$(BINARIES),~/pmu-tools/ocperf.py record -b -e br_inst_retired.near_taken -- ./$(BINARY);/tmp/autofdo/create_gcov --binary=./$(BINARY) --profile=perf.data --gcov=$(BINARY).afdo -gcov_version=1;)#$(CC) $(FLAGS) $(LIBS) -O3 -fauto-profile=$(BINARY).afdo src/$(BINARY).c $(CSOURCES) -o $(BINARY)_autofdo;)
+autofdo: $(BINARIES) $(PMU_TOOLS_PATH)/ocperf.py $(AUTOFDO_PATH)/create_gcov
+	$(foreach BINARY,$(BINARIES),$(PMU_TOOLS_PATH)/ocperf.py record -b -e br_inst_retired.near_taken -- ./$(BINARY);$(AUTOFDO_PATH)/create_gcov --binary=./$(BINARY) --profile=perf.data --gcov=$(BINARY).afdo -gcov_version=1;)
+
+$(PMU_TOOLS_PATH)/ocperf.py:
+	git clone https://github.com/andikleen/pmu-tools.git $(PMU_TOOLS_PATH)
+
+$(AUTOFDO_PATH)/create_gcov:
+	./install_autofdo.sh $(INSTALLATION_PATH)
 
 bubble_sort: src/bubble_sort.o $(COBJECTS) $(HEADERS) $(COMMON)
 	$(CC) $(FLAGS) $(CFLAGS) $(LIBS) $(DEBUGFLAGS) -o $@ $< $(COBJECTS)
