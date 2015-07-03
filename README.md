@@ -41,6 +41,8 @@ Then recompile again with the `-fprofile-use` flag and the optimization enabled 
 
 In case that you want to compile using `$ make release` you will need to change the `RELEASEFLAGS` variable to include `-fprofile-use=*.gcda` to use all the profile files
 
+    $ make RELEASEFLAGS="-O3 -fprofile-use=*.gcda" release
+
 Execute the binaries again to measure the time and compare with other optimization methods.
 
 #### AutoFDO
@@ -55,14 +57,26 @@ Then we have included a proccess that generates the profiles for you. We are tak
     
 Then before recompiling, you will need to change the RELEASEFLAGS variable to use the .afdo profile files
 
-    $ make release
+    $ make RELEASEFLAGS="-O3 -fauto-profile=*.afdo" release
     
+
+Another option is to merge the profiles using the `profile_merger` binary in AutoFDO package.
+
 Execute the binaries again to measure the time and compare with other optimization methods.
+
+In case you want to clean everithing run `$ make distclean` this will delete all generated files to start compiling again.
 
 ## 3. Automation scripts
 
-Under development
+If you want to get the perf.data of any execution you can use the `generate_perf_data.sh` file. This script will automatically download the pmu_tools repository in specified directory (/tmp/ by default):
 
+    $ ./generate_perf_data.sh --command="./some_tool --params"
+
+If you want to generate an AutoFDO profile, you can use the `profile_generator.py`. This script will automatically download and compile AutoFDO package in specified directory (/tmp/ by default)
+
+    $ ./profile_generator.py some_tool.data
+
+Then you will have a `some_tool.afdo` merged profile that cam be used to recompile the "some_tool" binary
 
 
 
