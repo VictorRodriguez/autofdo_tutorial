@@ -51,16 +51,19 @@ The first thing you do after downloading a source code is compiling, so go ahead
 
     $ make
 
-Then we have included a proccess that generates the profiles for you. We are taking advantage of a perf wrapper named ocperf, this tool can be found in the repository in here: https://github.com/andikleen/pmu-tools. Clone that repository in your home directory, then:
+Then we have included a proccess that generates the profiles for you. We are taking advantage of a perf wrapper named `ocperf.py`, this tool can be found in the repository in here: https://github.com/andikleen/pmu-tools. We are also downloading and compiling AutoFDO from https://github.com/google/autofdo. The default location for this tools is /tmp/ you can change it by overwriting the `INSTALLATION_PATH` variable:
 
     $ make autofdo
     
-Then before recompiling, you will need to change the RELEASEFLAGS variable to use the .afdo profile files
+Then before recompiling, you will need to change the `RELEASEFLAGS` variable to use the .afdo profile files
 
     $ make RELEASEFLAGS="-O3 -fauto-profile=*.afdo" release
     
 
-Another option is to merge the profiles using the `profile_merger` binary in AutoFDO package.
+Another option is to merge the profiles using the `profile_merger` binary in AutoFDO package. This will make you handle only just one .afdo file instead of multiple (Remember to include `-gcov_version=1` flag):
+
+    $ /tmp/autofdo/profile_merger -gcov_version=1 *.afdo
+    $ make RELEASEFLAGS="-O3 -fauto-profile=fbdata.afdo" release
 
 Execute the binaries again to measure the time and compare with other optimization methods.
 
@@ -76,7 +79,7 @@ If you want to generate an AutoFDO profile, you can use the `profile_generator.p
 
     $ ./profile_generator.py some_tool.data
 
-Then you will have a `some_tool.afdo` merged profile that cam be used to recompile the "some_tool" binary
+Then you will have a `some_tool.afdo` merged profile that can be used to recompile the "some_tool" binaries
 
 
 
