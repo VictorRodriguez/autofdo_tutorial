@@ -46,7 +46,7 @@ def parse_binaries(perf_file):
         sys.exit(1)
     p = subprocess.Popen(["perf", "buildid-list", "-i", perf_file], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     out, err = p.communicate()
-    binaries = [line.strip().split()[1] for line in out.split("\n")]
+    binaries = [line.strip().split()[1] for line in out.split("\n") if line]
     return binaries
 
 def generate_gcov(autofdo_path, perf_file, binaries, automerge=False):
@@ -54,6 +54,7 @@ def generate_gcov(autofdo_path, perf_file, binaries, automerge=False):
         logger.error("No binaries found in "+perf_file)
         sys.exit(1)
     directory = perf_file[:-5] if perf_file.endswith(".data") else perf_file
+    directory += "_gcovs"
     os.mkdir(directory)
     logger.info("Generating gcovs")
     gcovs = []
