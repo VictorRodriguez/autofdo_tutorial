@@ -27,18 +27,42 @@ def get_autofdo_path():
     return out.split()[-1]
 
 def parse_binaries(perf_file):
-    logger.info("Parsing perf file")
+    logger.info("Dumping perf file")
     binaries = []
     exist = False
     if not os.path.exists(perf_file) or not os.path.isfile(perf_file):
         logger.error("Perf data file wasn't found")
         sys.exit(1)
-    p = subprocess.Popen(["perf", "report", "-i", perf_file, "-D"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    out, err = p.communicate()
-    binaries = list(set([y.split()[2] for y in [x.strip() for x in out.split("\n") if x and x.startswith(" ...... dso: ")]]))
+    if os.path.exists(perf_file+".raw"):
+        os.remove(perf_file+".raw")
+    #with open(perf_file+".raw", "w") as raw_file:
+    #    p = subprocess.Popen(["perf", "report", "-i", perf_file, "-D"], stdout=raw_file, stderr=subprocess.PIPE)
+    #    raw_file.flush()
+    #p = subprocess.Popen(["perf", "report", "-i", perf_file, "-D", ">", perf_file+".raw"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    p = subprocess.Popen("perf report -i "+perf_file+" -D > "+perf_file+".raw", stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
+    logger.info("Parsing raw perf file")
+    counter = 0
+    while not os.path.exists(perf_file+".raw"):
+        logger.info("Waiting file to be created")
+        time.sleep(1)
+    with open(perf_file+".raw", "r") as infile:
+        #pdb.set_trace()
+        for line in infile:
+            counter += 1
+            #print counter
+            if "dso:" in line and not line.strip().split()[2] in binaries:
+                #pdb.set_trace()
+                # and not line.strip().split()[2] in binaries:
+                binaries.append(line.strip().split()[2])
+    #out, err = p.communicate()
+    #binaries = list(set([y.split()[2] for y in [x.strip() for x in out.split("\n") if x and x.startswith(" ...... dso: ")]]))
+    #pdb.set_trace()
     return binaries
 
 def generate_gcov(autofdo_path, perf_file, binaries):
+    if not binaries:
+        logger.error("No binaries found in "+perf_file)
+        sys.exit(1)
     logger.info("Generating gcovs")
     gcovs = []
     for binary in binaries:
