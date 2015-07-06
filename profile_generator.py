@@ -38,56 +38,37 @@ def get_autofdo_path():
     return out.split()[-1]
 
 def parse_binaries(perf_file):
-    logger.info("Dumping perf file")
+    logger.info("Parsing raw perf file")
     binaries = []
     exist = False
     if not os.path.exists(perf_file) or not os.path.isfile(perf_file):
         logger.error("Perf data file wasn't found")
         sys.exit(1)
-    if os.path.exists(perf_file+".raw"):
-        os.remove(perf_file+".raw")
-    #with open(perf_file+".raw", "w") as raw_file:
-    #    p = subprocess.Popen(["perf", "report", "-i", perf_file, "-D"], stdout=raw_file, stderr=subprocess.PIPE)
-    #    raw_file.flush()
-    #p = subprocess.Popen(["perf", "report", "-i", perf_file, "-D", ">", perf_file+".raw"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    p = subprocess.Popen("perf report -i "+perf_file+" -D > "+perf_file+".raw", stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
-    logger.info("Parsing raw perf file")
-    counter = 0
-    while not os.path.exists(perf_file+".raw"):
-        logger.info("Waiting file to be created")
-        time.sleep(1)
-    with open(perf_file+".raw", "r") as infile:
-        #pdb.set_trace()
-        for line in infile:
-            counter += 1
-            #print counter
-            if "dso:" in line and not line.strip().split()[2] in binaries:
-                #pdb.set_trace()
-                # and not line.strip().split()[2] in binaries:
-                binaries.append(line.strip().split()[2])
-    #out, err = p.communicate()
-    #binaries = list(set([y.split()[2] for y in [x.strip() for x in out.split("\n") if x and x.startswith(" ...... dso: ")]]))
-    #pdb.set_trace()
+    p = subprocess.Popen(["perf", "buildid-list", "-i", perf_file], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    out, err = p.communicate()
+    binaries = [line.strip().split()[1] for line in out.split("\n")]
     return binaries
 
-def generate_gcov(autofdo_path, perf_file, binaries):
+def generate_gcov(autofdo_path, perf_file, binaries, automerge=False):
     if not binaries:
         logger.error("No binaries found in "+perf_file)
         sys.exit(1)
+    directory = perf_file[:-5] if perf_file.endswith(".data") else perf_file
+    os.mkdir(directory)
     logger.info("Generating gcovs")
     gcovs = []
     for binary in binaries:
         if not binary.startswith("["):
-            gcov_file = binary.split("/")[-1]+".afdo"
+            gcov_file = os.path.join(directory, binary.split("/")[-1]+".afdo")
             p = subprocess.Popen([os.path.join(autofdo_path, "create_gcov"), "--binary="+binary, "--profile="+perf_file, "--gcov="+gcov_file, "-gcov_version=1"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             if not p.returncode:
                 gcovs.append(gcov_file)
-    main_gcov = merge_gcovs(autofdo_path, gcovs) if len(gcovs) > 1 else gcovs[0]
-    while not os.path.exists(main_gcov):
-        time.sleep(1)
-    new_gcov = perf_file.split(".data")[0]+".afdo"
-    shutil.copy2(main_gcov, new_gcov)
-    return new_gcov
+    if automerge:
+        main_gcov = merge_gcovs(autofdo_path, gcovs) if len(gcovs) > 1 else gcovs[0]
+        while not os.path.exists(main_gcov):
+            time.sleep(1)
+        new_gcov = perf_file.split(".data")[0]+".afdo"
+        shutil.copy2(main_gcov, new_gcov)
 
 def merge_gcovs(autofdo_path, gcovs):
     logger.info("Waiting gcov creation")
@@ -103,8 +84,8 @@ def upload_gcov(gcov):
 if __name__ == "__main__":	
     parser = argparse.ArgumentParser(prog='./profile_generator.py',
                                      usage='%(prog)s [options]')
-    parser.add_argument("perf_file", nargs=1,
-                        help="Perf data file")
+    parser.add_argument("perf_files", nargs="+",
+                        help="Perf data files")
     parser.add_argument('-l', '--verbosity_level', dest='verbosity_level',
                         action='store', default=logging.getLevelName(DEFAULT_LOGGING_LEVEL),
                         choices=[logging.getLevelName(logging.DEBUG),
@@ -126,6 +107,6 @@ if __name__ == "__main__":
         logger.error("Unrecognized logging level")
     logger.addHandler(ch)
     autofdo_path = get_autofdo_path()
-    binaries = parse_binaries(args.perf_file[0])
-    gcov = generate_gcov(autofdo_path, args.perf_file[0], binaries)
-    upload_gcov(gcov)
+    for perf_file in args.perf_files:
+        binaries = parse_binaries(perf_file)
+        gcov = generate_gcov(autofdo_path, perf_file, binaries)
