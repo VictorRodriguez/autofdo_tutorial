@@ -38,14 +38,21 @@ def get_autofdo_path():
     return out.split()[-1]
 
 def parse_binaries(perf_file):
-    logger.info("Parsing raw perf file")
+    logger.info("Parsing perf file")
     binaries = []
     exist = False
     if not os.path.exists(perf_file) or not os.path.isfile(perf_file):
         logger.error("Perf data file wasn't found")
         sys.exit(1)
-    p = subprocess.Popen(["perf", "buildid-list", "-i", perf_file], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    cmd = ["perf", "buildid-list", "-i", perf_file]
+    logger.debug("Executing command: "+" ".join(cmd))
+    p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     out, err = p.communicate()
+    if not p.returncode:
+        logger.debug("Success")
+        binaries = [line.strip().split()[1] for line in out.split("\n") if line]
+    logger.debug(out)
+    logger.debug(err)
     binaries = [line.strip().split()[1] for line in out.split("\n") if line]
     return binaries
 
@@ -61,9 +68,15 @@ def generate_gcov(autofdo_path, perf_file, binaries, automerge=False):
     for binary in binaries:
         if not binary.startswith("["):
             gcov_file = os.path.join(directory, binary.split("/")[-1]+".afdo")
-            p = subprocess.Popen([os.path.join(autofdo_path, "create_gcov"), "--binary="+binary, "--profile="+perf_file, "--gcov="+gcov_file, "-gcov_version=1"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            cmd = [os.path.join(autofdo_path, "create_gcov"), "--binary="+binary, "--profile="+perf_file, "--gcov="+gcov_file, "-gcov_version=1"]
+            logger.debug("Executing command "+" ".join(cmd))
+            p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            out, err = p.communicate()
             if not p.returncode:
+                logger.debug("Successful")
                 gcovs.append(gcov_file)
+            logger.debug(out)
+            logger.debug(err)
     if automerge:
         main_gcov = merge_gcovs(autofdo_path, gcovs) if len(gcovs) > 1 else gcovs[0]
         while not os.path.exists(main_gcov):

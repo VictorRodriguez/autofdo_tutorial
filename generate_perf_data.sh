@@ -51,7 +51,7 @@ if [ ! -z "$COMMAND" ]; then
 
 	echo "Generating profiles"
 	cd $CWD
-	$OCPERF record -b -g -e br_inst_retired.near_taken -o $CWD/$NAME.data -- $COMMAND
+	$OCPERF record -b -e br_inst_retired.near_taken -o $CWD/$NAME.data -- $COMMAND
 
 else
 	echo "No command provided, use -c=\"tool --params\" option"
