@@ -36,6 +36,8 @@ if [ ! -z "$COMMAND" ]; then
 	BINARY=${c_array[0]}
 	IFS='/' read -a b_array <<< "$BINARY"
 	NAME=${b_array[-1]}
+	IFS='.' read -a n_array <<< "$NAME"
+	SHORTNAME=${n_array[0]}
 
 	which ocperf.py > /dev/null 2>&1
 	if [ $? -eq 0 ]; then
@@ -51,7 +53,7 @@ if [ ! -z "$COMMAND" ]; then
 
 	echo "Generating profiles"
 	cd $CWD
-	$OCPERF record -b -e br_inst_retired.near_taken -o $CWD/$NAME.data -- $COMMAND
+	$OCPERF record -b -e br_inst_retired.near_taken -o $CWD/$SHORTNAME.data -- $COMMAND
 
 else
 	echo "No command provided, use -c=\"tool --params\" option"

@@ -44,7 +44,7 @@ def parse_binaries(perf_file):
     if not os.path.exists(perf_file) or not os.path.isfile(perf_file):
         logger.error("Perf data file wasn't found")
         sys.exit(1)
-    cmd = ["perf", "buildid-list", "-i", perf_file]
+    cmd = ["perf", "buildid-list", "-i", perf_file, "-H"]
     logger.debug("Executing command: "+" ".join(cmd))
     p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     out, err = p.communicate()
@@ -62,6 +62,8 @@ def generate_gcov(autofdo_path, perf_file, binaries, automerge=False):
         sys.exit(1)
     directory = perf_file[:-5] if perf_file.endswith(".data") else perf_file
     directory += "_gcovs"
+    if os.path.exists(directory) and os.path.isdir(directory):
+        shutil.rmtree(directory)
     os.mkdir(directory)
     logger.info("Generating gcovs")
     gcovs = []
@@ -92,8 +94,6 @@ def merge_gcovs(autofdo_path, gcovs):
     p = subprocess.Popen([os.path.join(autofdo_path, "profile_merger")] + gcovs + ["-gcov_version=1"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     return "fbdata.afdo" if not p.returncode else ""
 
-def upload_gcov(gcov):
-    pass
 
 if __name__ == "__main__":	
     parser = argparse.ArgumentParser(prog='./profile_generator.py',
@@ -123,4 +123,4 @@ if __name__ == "__main__":
     autofdo_path = get_autofdo_path()
     for perf_file in args.perf_files:
         binaries = parse_binaries(perf_file)
-        gcov = generate_gcov(autofdo_path, perf_file, binaries)
+        gcov = generate_gcov(autofdo_path, perf_file, binaries, automerge=True)
