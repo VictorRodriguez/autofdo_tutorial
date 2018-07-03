@@ -63,10 +63,11 @@ remove:
 	rm -rf *.afdo*
 	rm -rf *.gcda
 
-# normalfdo:
-# 	$(CC) -g3 $(FLAGS) $(LIBS) $(SOURCES) -o demo_instrumented -fprofile-generate
-# 	./demo_instrumented
-# 	$(CC) $(FLAGS) $(LIBS) -O3 $(SOURCES) -o demo_normalfdo -fprofile-use
+normalfdo:
+	$(CC) -g3 $(FLAGS) $(LIBS) src/debug.c src/bubble_sort.c -o bubble_sort -fprofile-generate
+	./bubble_sort
+	$(CC) $(FLAGS) $(LIBS) -O3 src/debug.c src/bubble_sort.c -o bubble_sort -fprofile-use="*.gcda"
+	./bubble_sort
 
 # autofdo: $(BINARIES)
 # 	~/pmu-tools/ocperf.py record -b -e br_inst_retired.near_taken -- ./demo
