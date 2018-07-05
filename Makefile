@@ -50,10 +50,8 @@ cleanfdo:
 	-rm -f *.afdo*
 	-rm -f *.gcda
 
-distclean: clean cleanfdo
-	-rm -f $(BINARIES)
-	$(foreach BINARY,$(BINARIES), rm -f $(BINARY)_autofdo; rm -f $(BINARY)_optimized;)
-
+distclean:
+	@find . -type f -executable -exec sh -c "file -i '{}' | grep -q 'x-executable; charset=binary'" \; -print | xargs rm -f
 default:
 	gcc main.c bubble_sort.c pi_calculation.c matrix_multiplication.c -lm -o demo
 
